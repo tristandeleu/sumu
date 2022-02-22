@@ -1414,7 +1414,11 @@ class LocalScore:
         if score is None:
             self.score = Defaults()["score"](self.data.discrete)
         self.prior = prior
-        self.priorf = {"fair": self._prior_fair, "unif": self._prior_unif}
+        self.priorf = {
+            "fair": self._prior_fair,
+            "unif": self._prior_unif,
+            "er2": self._prior_er2
+        }
         self.maxid = maxid
         self._precompute_prior()
 
@@ -1433,6 +1437,9 @@ class LocalScore:
 
         self.t_scorer = 0
         self.t_prior = 0
+
+    def _prior_er2(self, indegree):
+        return self._prior[indegree]
 
     def _prior_fair(self, indegree):
         return self._prior[indegree]
@@ -1454,6 +1461,13 @@ class LocalScore:
                     )
                 )
             )
+        elif self.prior["name"] == "er2":
+            num_variables = self.data.n
+            num_edges = num_variables * 2  # ER2
+            p = num_edges / ((num_variables * (num_variables - 1)) // 2)
+            all_parents = np.arange(num_variables)
+            self._prior = (all_parents * np.log(p)
+                + (num_variables - all_parents - 1) * np.log(1 - p))
 
     def local(self, v, pset):
         """Local score for input node v and pset, with score function
